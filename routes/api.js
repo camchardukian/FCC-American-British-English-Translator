@@ -1,13 +1,7 @@
-'use strict';
+"use strict";
+const translateController = require("../controllers/translate-controller");
+const router = require("express").Router();
 
-const Translator = require('../components/translator.js');
+router.post("/translate", translateController.translateString);
 
-module.exports = function (app) {
-  
-  const translator = new Translator();
-
-  app.route('/api/translate')
-    .post((req, res) => {
-      
-    });
-};
+module.exports = router;
