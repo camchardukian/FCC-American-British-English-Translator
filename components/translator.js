@@ -3,11 +3,19 @@ const americanToBritishSpelling = require("./american-to-british-spelling.js");
 const americanToBritishTitles = require("./american-to-british-titles.js");
 const britishOnly = require("./british-only.js");
 const punctuationWhitespaceRegex = /[,!.?\s]/;
+const wordsAndTermsToHighlight = [];
 
 class Translator {
   translate({ text, locale }) {
     let updatedSpellingString = this.updateSpelling({ text, locale });
-    return { text, translation: updatedSpellingString };
+    let highlightedString = this.addHighlightClass({
+      text: updatedSpellingString
+    });
+    const finalTranslation = highlightedString;
+    if (finalTranslation !== text) {
+      return { text, translation: finalTranslation };
+    }
+    return { translation: "Everything looks good to me!" };
   }
   updateSpelling({ text, locale }) {
     let currentWord = "";
@@ -33,6 +41,7 @@ class Translator {
     if (locale === "american-to-british") {
       if (americanToBritishSpelling[currentWord]) {
         replacementWord = americanToBritishSpelling[currentWord];
+        wordsAndTermsToHighlight.push(americanToBritishSpelling[currentWord]);
       }
     } else {
       if (this.getKeyByValue(americanToBritishSpelling, currentWord)) {
@@ -40,6 +49,7 @@ class Translator {
           americanToBritishSpelling,
           currentWord
         );
+        wordsAndTermsToHighlight.push(americanToBritishSpelling[currentWord]);
       }
     }
     return replacementWord;
@@ -59,6 +69,16 @@ class Translator {
       return { error: "Invalid value for locale field" };
     }
     return false;
+  }
+  addHighlightClass({ text }) {
+    let highlightedText = text;
+    wordsAndTermsToHighlight.forEach(word => {
+      highlightedText = highlightedText.replace(
+        word,
+        `<span class="highlight">${word}</span>`
+      );
+    });
+    return highlightedText;
   }
 }
 
