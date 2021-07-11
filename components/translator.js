@@ -3,15 +3,21 @@ const americanToBritishSpelling = require("./american-to-british-spelling.js");
 const americanToBritishTitles = require("./american-to-british-titles.js");
 const britishOnly = require("./british-only.js");
 const punctuationWhitespaceRegex = /[,!.?\s]/;
-const wordsAndTermsToHighlight = [];
+let wordsAndTermsToHighlight = [];
+const americanTimeRegexp = /([0-1]?[0-9]|2[0-3]):[0-5][0-9]/g;
+const britishTimeRegexp = /([0-1]?[0-9]|2[0-3])\.[0-5][0-9]/g;
 
 class Translator {
   translate({ text, locale }) {
-    let updatedSpellingString = this.updateSpelling({ text, locale });
-    let highlightedString = this.addHighlightClass({
-      text: updatedSpellingString
+    wordsAndTermsToHighlight = [];
+    let updatedStringSpelling = this.updateSpelling({ text, locale });
+    const updatedTimeFormatString = this.updateTimeFormat({
+      string: updatedStringSpelling,
+      locale
     });
-    const finalTranslation = highlightedString;
+    const finalTranslation = this.addHighlightClass({
+      text: updatedTimeFormatString
+    });
     if (finalTranslation !== text) {
       return { text, translation: finalTranslation };
     }
@@ -41,7 +47,7 @@ class Translator {
     if (locale === "american-to-british") {
       if (americanToBritishSpelling[currentWord]) {
         replacementWord = americanToBritishSpelling[currentWord];
-        wordsAndTermsToHighlight.push(americanToBritishSpelling[currentWord]);
+        wordsAndTermsToHighlight.push(replacementWord);
       }
     } else {
       if (this.getKeyByValue(americanToBritishSpelling, currentWord)) {
@@ -49,10 +55,31 @@ class Translator {
           americanToBritishSpelling,
           currentWord
         );
-        wordsAndTermsToHighlight.push(americanToBritishSpelling[currentWord]);
+        wordsAndTermsToHighlight.push(replacementWord);
       }
     }
     return replacementWord;
+  }
+  updateTimeFormat({ string, locale }) {
+    let updatedTimeStringsArray = [];
+    let updatedTranslationString = string;
+    if (locale === "american-to-british") {
+      const timeStringsArray = string.match(americanTimeRegexp) || [];
+      timeStringsArray.forEach(timeString => {
+        updatedTimeStringsArray.push(timeString.replace(":", "."));
+        updatedTranslationString = updatedTranslationString.replace(":", ".");
+      });
+    } else {
+      const timeStringsArray = string.match(britishTimeRegexp) || [];
+      timeStringsArray.forEach(timeString => {
+        updatedTimeStringsArray.push(timeString.replace(".", ":"));
+        updatedTranslationString = updatedTranslationString.replace(".", ":");
+      });
+    }
+    wordsAndTermsToHighlight = wordsAndTermsToHighlight.concat(
+      updatedTimeStringsArray
+    );
+    return updatedTranslationString;
   }
   getKeyByValue(object, value) {
     return Object.keys(object).find(key => object[key] === value);
