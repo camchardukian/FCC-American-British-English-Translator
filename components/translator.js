@@ -2,67 +2,47 @@ const americanOnly = require("./american-only.js");
 const americanToBritishSpelling = require("./american-to-british-spelling.js");
 const americanToBritishTitles = require("./american-to-british-titles.js");
 const britishOnly = require("./british-only.js");
+const punctuationWhitespaceRegex = /[,!.?\s]/;
 
 class Translator {
   translate({ text, locale }) {
-    const punctuationWhitespaceRegex = /[,!.?\s]/;
-    let punctuationToAddBackArray = [];
+    let updatedSpellingString = this.updateSpelling({ text, locale });
+    return { text, translation: updatedSpellingString };
+  }
+  updateSpelling({ text, locale }) {
+    let currentWord = "";
+    let updatedText = text;
     for (let i = 0; i < text.length; i += 1) {
-      if (
-        text[i] &&
-        text[i].trim() &&
-        punctuationWhitespaceRegex.test(text[i])
-      ) {
-        punctuationToAddBackArray.push(text[i]);
+      if (punctuationWhitespaceRegex.test(text[i])) {
+        const replacementWord = this.findReplacementWordSpelling({
+          currentWord,
+          locale
+        });
+        if (replacementWord) {
+          updatedText = updatedText.replace(currentWord, replacementWord);
+        }
+        currentWord = "";
+      } else {
+        currentWord = currentWord + text[i];
       }
     }
-    const textArray = text.split(punctuationWhitespaceRegex);
-    let updatedSpellingArray = this.updateSpelling({ textArray, locale });
-    let translationArray = punctuationToAddBackArray.length
-      ? this.addBackPunctuation({
-          textArray: updatedSpellingArray,
-          punctuationToAddBackArray
-        })
-      : updatedSpellingArray;
-    const result = translationArray.join(" ");
-    // In the next PR simplify the entire translate feature and figure out how to solve the extra spacing around punctuation mark bug.
-    return { text, translation: result };
+    return updatedText;
   }
-  updateSpelling({ textArray, locale }) {
-    let updatedSpellingArray = textArray;
+  findReplacementWordSpelling({ currentWord, locale }) {
+    let replacementWord = "";
     if (locale === "american-to-british") {
-      textArray.forEach((word, index) => {
-        if (americanToBritishSpelling[word]) {
-          updatedSpellingArray[index] = americanToBritishSpelling[word];
-        }
-      });
-    } else if (locale === "british-to-american") {
-      textArray.forEach((word, index) => {
-        if (this.getKeyByValue(americanToBritishSpelling, word)) {
-          updatedSpellingArray[index] = this.getKeyByValue(
-            americanToBritishSpelling,
-            word
-          );
-        }
-      });
-    }
-    return updatedSpellingArray;
-  }
-  addBackPunctuation({ textArray, punctuationToAddBackArray }) {
-    let itemIndexToInsertIntoTranslationArray = 0;
-    let updatedTextArray = textArray;
-    while (
-      itemIndexToInsertIntoTranslationArray < punctuationToAddBackArray.length
-    ) {
-      for (let i = 0; i < textArray.length; i += 1) {
-        if (!textArray[i]) {
-          updatedTextArray[i] =
-            punctuationToAddBackArray[itemIndexToInsertIntoTranslationArray];
-          itemIndexToInsertIntoTranslationArray += 1;
-        }
+      if (americanToBritishSpelling[currentWord]) {
+        replacementWord = americanToBritishSpelling[currentWord];
+      }
+    } else {
+      if (this.getKeyByValue(americanToBritishSpelling, currentWord)) {
+        replacementWord = this.getKeyByValue(
+          americanToBritishSpelling,
+          currentWord
+        );
       }
     }
-    return updatedTextArray;
+    return replacementWord;
   }
   getKeyByValue(object, value) {
     return Object.keys(object).find(key => object[key] === value);
