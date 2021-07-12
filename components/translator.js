@@ -10,7 +10,7 @@ const britishTimeRegexp = /([0-1]?[0-9]|2[0-3])\.[0-5][0-9]/g;
 class Translator {
   translate({ text, locale }) {
     wordsAndTermsToHighlight = [];
-    let updatedStringSpelling = this.updateSpelling({ text, locale });
+    let updatedStringSpelling = this.updateTermsAndSpelling({ text, locale });
     const updatedTimeFormatString = this.updateTimeFormat({
       string: updatedStringSpelling,
       locale
@@ -23,15 +23,22 @@ class Translator {
     }
     return { translation: "Everything looks good to me!" };
   }
-  updateSpelling({ text, locale }) {
+  updateTermsAndSpelling({ text, locale }) {
     let currentWord = "";
     let updatedText = text;
     for (let i = 0; i < text.length; i += 1) {
       if (punctuationWhitespaceRegex.test(text[i])) {
-        const replacementWord = this.findReplacementWordSpelling({
+        let replacementWord;
+        replacementWord = this.findReplacementWordSpelling({
           currentWord,
           locale
         });
+        if (!replacementWord) {
+          replacementWord = this.translateRegionalTerms({
+            currentWord,
+            locale
+          });
+        }
         if (replacementWord) {
           updatedText = updatedText.replace(currentWord, replacementWord);
         }
@@ -80,6 +87,21 @@ class Translator {
       updatedTimeStringsArray
     );
     return updatedTranslationString;
+  }
+  translateRegionalTerms({ currentWord, locale }) {
+    let replacementWord = "";
+    if (locale === "american-to-british") {
+      if (americanOnly[currentWord]) {
+        replacementWord = americanOnly[currentWord];
+        wordsAndTermsToHighlight.push(replacementWord);
+      }
+    } else {
+      if (britishOnly[currentWord]) {
+        replacementWord = britishOnly[currentWord];
+        wordsAndTermsToHighlight.push(replacementWord);
+      }
+    }
+    return replacementWord;
   }
   getKeyByValue(object, value) {
     return Object.keys(object).find(key => object[key] === value);
