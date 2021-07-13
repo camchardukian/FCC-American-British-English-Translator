@@ -2,21 +2,29 @@ const americanOnly = require("./american-only.js");
 const americanToBritishSpelling = require("./american-to-british-spelling.js");
 const americanToBritishTitles = require("./american-to-british-titles.js");
 const britishOnly = require("./british-only.js");
-const punctuationWhitespaceRegex = /[,!.?\s]/;
 let wordsAndTermsToHighlight = [];
+const punctuationWhitespaceRegex = /[,!.?\s]/;
 const americanTimeRegexp = /([0-1]?[0-9]|2[0-3]):[0-5][0-9]/g;
 const britishTimeRegexp = /([0-1]?[0-9]|2[0-3])\.[0-5][0-9]/g;
+const titleRegex = /(mr|mrs|ms|mx|dr|prof)\./gi;
 
 class Translator {
   translate({ text, locale }) {
     wordsAndTermsToHighlight = [];
-    let updatedStringSpelling = this.updateTermsAndSpelling({ text, locale });
+    const updatedTermsAndSpellingString = this.updateTermsAndSpelling({
+      text,
+      locale
+    });
     const updatedTimeFormatString = this.updateTimeFormat({
-      string: updatedStringSpelling,
+      string: updatedTermsAndSpellingString,
+      locale
+    });
+    const updatedTitleString = this.updateTitle({
+      text: updatedTimeFormatString,
       locale
     });
     const finalTranslation = this.addHighlightClass({
-      text: updatedTimeFormatString
+      text: updatedTitleString
     });
     if (finalTranslation !== text) {
       return { text, translation: finalTranslation };
@@ -87,6 +95,29 @@ class Translator {
       updatedTimeStringsArray
     );
     return updatedTranslationString;
+  }
+  updateTitle({ text, locale }) {
+    let updatedTitleText = text;
+    let titleMatchedArray = updatedTitleText.match(titleRegex);
+    if (locale === "american-to-british") {
+      do {
+        titleMatchedArray = updatedTitleText.match(titleRegex);
+        if (titleMatchedArray) {
+          const replacementTitle = titleMatchedArray[0].substring(
+            0,
+            titleMatchedArray[0].length - 1
+          );
+          wordsAndTermsToHighlight.push(replacementTitle);
+          updatedTitleText = updatedTitleText.replace(
+            titleMatchedArray[0],
+            replacementTitle
+          );
+        }
+      } while (titleMatchedArray);
+    } else {
+      // The translation from British to American titles will be addressed in the next PR
+    }
+    return updatedTitleText;
   }
   translateRegionalTerms({ currentWord, locale }) {
     let replacementWord = "";
