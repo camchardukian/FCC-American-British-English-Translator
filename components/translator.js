@@ -3,10 +3,11 @@ const americanToBritishSpelling = require("./american-to-british-spelling.js");
 const americanToBritishTitles = require("./american-to-british-titles.js");
 const britishOnly = require("./british-only.js");
 let wordsAndTermsToHighlight = [];
-const punctuationWhitespaceRegex = /[,!.?\s]/;
-const americanTimeRegexp = /([0-1]?[0-9]|2[0-3]):[0-5][0-9]/g;
-const britishTimeRegexp = /([0-1]?[0-9]|2[0-3])\.[0-5][0-9]/g;
-const titleRegex = /(mr|mrs|ms|mx|dr|prof)\./gi;
+const punctuationWhitespaceRegExp = /[,!.?\s]/;
+const americanTimeRegExp = /([0-1]?[0-9]|2[0-3]):[0-5][0-9]/g;
+const britishTimeRegExp = /([0-1]?[0-9]|2[0-3])\.[0-5][0-9]/g;
+const americanTitleRegExp = /(mr|mrs|ms|mx|dr|prof)\./gi;
+const britishTitleRegExp = /(mr|mrs|ms|mx|dr|prof)/gi;
 
 class Translator {
   translate({ text, locale }) {
@@ -35,7 +36,7 @@ class Translator {
     let currentWord = "";
     let updatedText = text;
     for (let i = 0; i < text.length; i += 1) {
-      if (punctuationWhitespaceRegex.test(text[i])) {
+      if (punctuationWhitespaceRegExp.test(text[i])) {
         let replacementWord;
         replacementWord = this.findReplacementWordSpelling({
           currentWord,
@@ -79,13 +80,13 @@ class Translator {
     let updatedTimeStringsArray = [];
     let updatedTranslationString = string;
     if (locale === "american-to-british") {
-      const timeStringsArray = string.match(americanTimeRegexp) || [];
+      const timeStringsArray = string.match(americanTimeRegExp) || [];
       timeStringsArray.forEach(timeString => {
         updatedTimeStringsArray.push(timeString.replace(":", "."));
         updatedTranslationString = updatedTranslationString.replace(":", ".");
       });
     } else {
-      const timeStringsArray = string.match(britishTimeRegexp) || [];
+      const timeStringsArray = string.match(britishTimeRegExp) || [];
       timeStringsArray.forEach(timeString => {
         updatedTimeStringsArray.push(timeString.replace(".", ":"));
         updatedTranslationString = updatedTranslationString.replace(".", ":");
@@ -98,10 +99,10 @@ class Translator {
   }
   updateTitle({ text, locale }) {
     let updatedTitleText = text;
-    let titleMatchedArray = updatedTitleText.match(titleRegex);
+    let titleMatchedArray = [];
     if (locale === "american-to-british") {
       do {
-        titleMatchedArray = updatedTitleText.match(titleRegex);
+        titleMatchedArray = updatedTitleText.match(americanTitleRegExp);
         if (titleMatchedArray) {
           const replacementTitle = titleMatchedArray[0].substring(
             0,
@@ -115,7 +116,18 @@ class Translator {
         }
       } while (titleMatchedArray);
     } else {
-      // The translation from British to American titles will be addressed in the next PR
+      titleMatchedArray = updatedTitleText.match(britishTitleRegExp) || [];
+      do {
+        if (titleMatchedArray.length) {
+          const replacementTitle = `${titleMatchedArray[0]}.`;
+          wordsAndTermsToHighlight.push(replacementTitle);
+          updatedTitleText = updatedTitleText.replace(
+            titleMatchedArray[0],
+            replacementTitle
+          );
+          titleMatchedArray.shift();
+        }
+      } while (titleMatchedArray.length);
     }
     return updatedTitleText;
   }
