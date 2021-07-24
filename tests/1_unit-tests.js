@@ -24,10 +24,7 @@ suite("Unit Tests", () => {
       text: "I ate yogurt for breakfast.",
       locale: toBritishLocale
     });
-    assert.equal(
-      result.translation,
-      'I ate <span class="highlight">yoghurt</span> for breakfast.'
-    );
+    assert.equal(result.translation, 'I ate <span class="highlight">yoghurt</span> for breakfast.');
     done();
   });
   test("#3 -- Translate, 'We had a party at my friend's condo.' to British English", done => {
@@ -57,10 +54,7 @@ suite("Unit Tests", () => {
       text: "The parking lot was full.",
       locale: toBritishLocale
     });
-    assert.equal(
-      result.translation,
-      'The <span class="highlight">car park</span> was full.'
-    );
+    assert.equal(result.translation, 'The <span class="highlight">car park</span> was full.');
     done();
   });
   test("#6 -- Translate, 'Like a high tech Rube Goldberg machine.' to British English", done => {
@@ -101,10 +95,7 @@ suite("Unit Tests", () => {
       text: "Dr. Grosh will see you now.",
       locale: toBritishLocale
     });
-    assert.equal(
-      result.translation,
-      '<span class="highlight">Dr</span> Grosh will see you now.'
-    );
+    assert.equal(result.translation, '<span class="highlight">Dr</span> Grosh will see you now.');
     done();
   });
   test("#10 -- Translate, 'Lunch is at 12:15 today.' to British English", done => {
@@ -112,10 +103,7 @@ suite("Unit Tests", () => {
       text: "Lunch is at 12:15 today.",
       locale: toBritishLocale
     });
-    assert.equal(
-      result.translation,
-      'Lunch is at <span class="highlight">12.15</span> today.'
-    );
+    assert.equal(result.translation, 'Lunch is at <span class="highlight">12.15</span> today.');
     done();
   });
 });
