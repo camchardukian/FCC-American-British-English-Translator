@@ -1,176 +1,108 @@
-const americanOnly = require("./american-only.js");
-const americanToBritishSpelling = require("./american-to-british-spelling.js");
-const americanToBritishTitles = require("./american-to-british-titles.js");
-const britishOnly = require("./british-only.js");
-let wordsAndTermsToHighlight = [];
-const punctuationWhitespaceRegExp = /[,!.?\s]/;
+const americanOnly = require("../components/american-only.js");
+const americanToBritishSpelling = require("../components/american-to-british-spelling.js");
+const americanToBritishTitles = require("../components/american-to-british-titles.js");
+const britishOnly = require("../components/british-only.js");
+const Helpers = require("../utils/helpers");
 const americanTimeRegExp = /([0-1]?[0-9]|2[0-3]):[0-5][0-9]/g;
 const britishTimeRegExp = /([0-1]?[0-9]|2[0-3])\.[0-5][0-9]/g;
-const americanTitleRegExp = /(mr|mrs|ms|mx|dr|prof)\./gi;
-const britishTitleRegExp = /(mr|mrs|ms|mx|dr|prof)/gi;
+const individualWordRegExp = /(\w+([-'])(\w+)?['-]?(\w+))|\w+/g;
 
 class Translator {
   translate({ text, locale }) {
-    wordsAndTermsToHighlight = [];
-    const updatedTermsAndSpellingString = this.updateTermsAndSpelling({
+    const translation = this.findAndReplace({ text, locale });
+    return { text, translation };
+  }
+
+  findAndReplace({ text, locale }) {
+    const {
+      titleDictionary,
+      termsAndSpellingDictionary,
+      timeRegex
+    } = this.generateAdditionalFindAndReplaceParams(locale);
+    const matchedItemsObject = this.matchItems({
       text,
+      termsAndSpellingDictionary,
+      titleDictionary,
+      timeRegex,
       locale
     });
-    const updatedTimeFormatString = this.updateTimeFormat({
-      string: updatedTermsAndSpellingString,
-      locale
-    });
-    const updatedTitleString = this.updateTitle({
-      text: updatedTimeFormatString,
-      locale
-    });
-    const finalTranslation = this.addHighlightClass({
-      text: updatedTitleString
-    });
-    if (finalTranslation !== text) {
-      return { text, translation: finalTranslation };
-    }
-    return { translation: "Everything looks good to me!" };
+    return this.replaceAndHighlight({ text, matchedItemsObject });
   }
-  updateTermsAndSpelling({ text, locale }) {
-    let currentWord = "";
-    let updatedText = text;
-    for (let i = 0; i < text.length; i += 1) {
-      if (punctuationWhitespaceRegExp.test(text[i])) {
-        let replacementWord;
-        replacementWord = this.findReplacementWordSpelling({
-          currentWord,
-          locale
-        });
-        if (!replacementWord) {
-          replacementWord = this.translateRegionalTerms({
-            currentWord,
-            locale
-          });
-        }
-        if (replacementWord) {
-          updatedText = updatedText.replace(currentWord, replacementWord);
-        }
-        currentWord = "";
-      } else {
-        currentWord = currentWord + text[i];
-      }
-    }
-    return updatedText;
+
+  generateAdditionalFindAndReplaceParams(locale) {
+    const isTranslatingToBritish = locale === "american-to-british";
+    const titleDictionary = isTranslatingToBritish
+      ? americanToBritishTitles
+      : Helpers.reverseKeyValuePairsInObject(americanToBritishTitles);
+    const termsAndSpellingDictionary = isTranslatingToBritish
+      ? { ...americanOnly, ...americanToBritishSpelling }
+      : {
+          ...britishOnly,
+          ...Helpers.reverseKeyValuePairsInObject(americanToBritishTitles)
+        };
+    const timeRegex = isTranslatingToBritish ? americanTimeRegExp : britishTimeRegExp;
+    return { titleDictionary, termsAndSpellingDictionary, timeRegex };
   }
-  findReplacementWordSpelling({ currentWord, locale }) {
-    let replacementWord = "";
-    if (locale === "american-to-british") {
-      if (americanToBritishSpelling[currentWord]) {
-        replacementWord = americanToBritishSpelling[currentWord];
-        wordsAndTermsToHighlight.push(replacementWord);
+
+  matchItems({ text, termsAndSpellingDictionary, titleDictionary, timeRegex, locale }) {
+    const lowerCaseText = text.toLowerCase();
+    const matchedItemsObject = {};
+    Object.entries(titleDictionary).map(([key, value]) => {
+      if (lowerCaseText.includes(key)) {
+        matchedItemsObject[key] = `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
       }
-    } else {
-      if (this.getKeyByValue(americanToBritishSpelling, currentWord)) {
-        replacementWord = this.getKeyByValue(
-          americanToBritishSpelling,
-          currentWord
-        );
-        wordsAndTermsToHighlight.push(replacementWord);
-      }
-    }
-    return replacementWord;
-  }
-  updateTimeFormat({ string, locale }) {
-    let updatedTimeStringsArray = [];
-    let updatedTranslationString = string;
-    if (locale === "american-to-british") {
-      const timeStringsArray = string.match(americanTimeRegExp) || [];
-      timeStringsArray.forEach(timeString => {
-        updatedTimeStringsArray.push(timeString.replace(":", "."));
-        updatedTranslationString = updatedTranslationString.replace(":", ".");
-      });
-    } else {
-      const timeStringsArray = string.match(britishTimeRegExp) || [];
-      timeStringsArray.forEach(timeString => {
-        updatedTimeStringsArray.push(timeString.replace(".", ":"));
-        updatedTranslationString = updatedTranslationString.replace(".", ":");
-      });
-    }
-    wordsAndTermsToHighlight = wordsAndTermsToHighlight.concat(
-      updatedTimeStringsArray
+    });
+
+    const termsWithMultipleWords = Object.fromEntries(
+      Object.entries(termsAndSpellingDictionary).filter(([key, value]) => {
+        return key.includes(" ");
+      })
     );
-    return updatedTranslationString;
-  }
-  updateTitle({ text, locale }) {
-    let updatedTitleText = text;
-    let titleMatchedArray = [];
-    if (locale === "american-to-british") {
-      do {
-        titleMatchedArray = updatedTitleText.match(americanTitleRegExp);
-        if (titleMatchedArray) {
-          const replacementTitle = titleMatchedArray[0].substring(
-            0,
-            titleMatchedArray[0].length - 1
-          );
-          wordsAndTermsToHighlight.push(replacementTitle);
-          updatedTitleText = updatedTitleText.replace(
-            titleMatchedArray[0],
-            replacementTitle
-          );
-        }
-      } while (titleMatchedArray);
-    } else {
-      titleMatchedArray = updatedTitleText.match(britishTitleRegExp) || [];
-      do {
-        if (titleMatchedArray.length) {
-          const replacementTitle = `${titleMatchedArray[0]}.`;
-          wordsAndTermsToHighlight.push(replacementTitle);
-          updatedTitleText = updatedTitleText.replace(
-            titleMatchedArray[0],
-            replacementTitle
-          );
-          titleMatchedArray.shift();
-        }
-      } while (titleMatchedArray.length);
-    }
-    return updatedTitleText;
-  }
-  translateRegionalTerms({ currentWord, locale }) {
-    let replacementWord = "";
-    if (locale === "american-to-british") {
-      if (americanOnly[currentWord]) {
-        replacementWord = americanOnly[currentWord];
-        wordsAndTermsToHighlight.push(replacementWord);
+
+    Object.entries(termsWithMultipleWords).map(([key, value]) => {
+      if (lowerCaseText.includes(key)) {
+        matchedItemsObject[key] = value;
       }
-    } else {
-      if (britishOnly[currentWord]) {
-        replacementWord = britishOnly[currentWord];
-        wordsAndTermsToHighlight.push(replacementWord);
+    });
+
+    lowerCaseText.match(individualWordRegExp).forEach(word => {
+      if (termsAndSpellingDictionary[word]) {
+        matchedItemsObject[word] = termsAndSpellingDictionary[word];
       }
+    });
+
+    const matchedTimes = lowerCaseText.match(timeRegex);
+
+    if (matchedTimes) {
+      matchedTimes.map(timeCharacter => {
+        if (locale === "american-to-british") {
+          return (matchedItemsObject[timeCharacter] = timeCharacter.replace(":", "."));
+        }
+        return (matchedItemsObject[timeCharacter] = timeCharacter.replace(".", ":"));
+      });
     }
-    return replacementWord;
+    return matchedItemsObject;
   }
-  getKeyByValue(object, value) {
-    return Object.keys(object).find(key => object[key] === value);
-  }
+
   validateTranslationFields({ text, locale }) {
     if (text === "") {
       return { error: "No text to translate" };
     } else if (!text || !locale) {
       return { error: "Required field(s) missing" };
-    } else if (
-      locale !== "american-to-british" &&
-      locale !== "british-to-american"
-    ) {
+    } else if (locale !== "american-to-british" && locale !== "british-to-american") {
       return { error: "Invalid value for locale field" };
     }
     return false;
   }
-  addHighlightClass({ text }) {
-    let highlightedText = text;
-    wordsAndTermsToHighlight.forEach(word => {
-      highlightedText = highlightedText.replace(
-        word,
-        `<span class="highlight">${word}</span>`
-      );
-    });
-    return highlightedText;
+
+  replaceAndHighlight({ text, matchedItemsObject }) {
+    if (Object.keys(matchedItemsObject).length) {
+      const matchedItemRegExp = new RegExp(Object.keys(matchedItemsObject).join("|"), "gi");
+      return text.replace(matchedItemRegExp, matchedItem => {
+        return `<span class="highlight">${matchedItemsObject[matchedItem.toLowerCase()]}</span>`;
+      });
+    }
+    return "Everything looks good to me!";
   }
 }
 
