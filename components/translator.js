@@ -17,13 +17,13 @@ class Translator {
     const {
       titleDictionary,
       termsAndSpellingDictionary,
-      timeRegex
+      timeRegexp
     } = this.generateAdditionalFindAndReplaceParams(locale);
     const matchedItemsObject = this.matchItems({
       text,
       termsAndSpellingDictionary,
       titleDictionary,
-      timeRegex,
+      timeRegexp,
       locale
     });
     return this.replaceAndHighlight({ text, matchedItemsObject });
@@ -40,11 +40,11 @@ class Translator {
           ...britishOnly,
           ...Helpers.reverseKeyValuePairsInObject(americanToBritishSpelling)
         };
-    const timeRegex = isTranslatingToBritish ? americanTimeRegExp : britishTimeRegExp;
-    return { titleDictionary, termsAndSpellingDictionary, timeRegex };
+    const timeRegexp = isTranslatingToBritish ? americanTimeRegExp : britishTimeRegExp;
+    return { titleDictionary, termsAndSpellingDictionary, timeRegexp };
   }
 
-  matchItems({ text, termsAndSpellingDictionary, titleDictionary, timeRegex, locale }) {
+  matchItems({ text, termsAndSpellingDictionary, titleDictionary, timeRegexp, locale }) {
     const lowerCaseText = text.toLowerCase();
     const matchedItemsObject = {};
 
@@ -72,7 +72,7 @@ class Translator {
       }
     });
 
-    const matchedTimes = lowerCaseText.match(timeRegex);
+    const matchedTimes = lowerCaseText.match(timeRegexp);
     if (matchedTimes) {
       matchedTimes.map(timeCharacter => {
         if (locale === "american-to-british") {
