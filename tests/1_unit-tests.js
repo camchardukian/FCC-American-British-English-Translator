@@ -111,6 +111,7 @@ suite("Unit Tests", () => {
       done();
     });
   });
+
   suite("British English to American English unit tests", () => {
     test("#1 -- Translate, 'We watched the footie match for a while.' to American English", done => {
       const result = translator.translate({
@@ -216,6 +217,53 @@ suite("Unit Tests", () => {
       assert.equal(
         result.translation,
         'Tea time is usually around 4 or <span class="highlight">4:30</span>.'
+      );
+      done();
+    });
+  });
+
+  suite("Highlight unit tests", () => {
+    test("#1 -- Highlight translation in, 'Mangoes are my favorite fruit.'", done => {
+      const result = translator.translate({
+        text: "Mangoes are my favorite fruit.",
+        locale: toBritishLocale
+      });
+      assert.equal(
+        result.translation,
+        'Mangoes are my <span class="highlight">favourite</span> fruit.'
+      );
+      done();
+    });
+    test("#2 -- Highlight translation in, 'I ate yogurt for breakfast.'", done => {
+      const result = translator.translate({
+        text: "I ate yogurt for breakfast.",
+        locale: toBritishLocale
+      });
+      assert.equal(
+        result.translation,
+        'I ate <span class="highlight">yoghurt</span> for breakfast.'
+      );
+      done();
+    });
+    test("#3 -- Highlight translation in, 'We watched the footie match for a while.'", done => {
+      const result = translator.translate({
+        text: "We watched the footie match for a while.",
+        locale: toAmericanLocale
+      });
+      assert.equal(
+        result.translation,
+        'We watched the <span class="highlight">soccer</span> match for a while.'
+      );
+      done();
+    });
+    test("#4 -- Highlight translation in, 'Paracetamol takes up to an hour to work.'", done => {
+      const result = translator.translate({
+        text: "Paracetamol takes up to an hour to work.",
+        locale: toAmericanLocale
+      });
+      assert.equal(
+        result.translation,
+        '<span class="highlight">Tylenol</span> takes up to an hour to work.'
       );
       done();
     });
