@@ -38,7 +38,7 @@ class Translator {
       ? { ...americanOnly, ...americanToBritishSpelling }
       : {
           ...britishOnly,
-          ...Helpers.reverseKeyValuePairsInObject(americanToBritishTitles)
+          ...Helpers.reverseKeyValuePairsInObject(americanToBritishSpelling)
         };
     const timeRegex = isTranslatingToBritish ? americanTimeRegExp : britishTimeRegExp;
     return { titleDictionary, termsAndSpellingDictionary, timeRegex };
@@ -47,6 +47,7 @@ class Translator {
   matchItems({ text, termsAndSpellingDictionary, titleDictionary, timeRegex, locale }) {
     const lowerCaseText = text.toLowerCase();
     const matchedItemsObject = {};
+
     Object.entries(titleDictionary).map(([key, value]) => {
       if (lowerCaseText.includes(key)) {
         matchedItemsObject[key] = `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
@@ -72,7 +73,6 @@ class Translator {
     });
 
     const matchedTimes = lowerCaseText.match(timeRegex);
-
     if (matchedTimes) {
       matchedTimes.map(timeCharacter => {
         if (locale === "american-to-british") {
@@ -81,6 +81,7 @@ class Translator {
         return (matchedItemsObject[timeCharacter] = timeCharacter.replace(".", ":"));
       });
     }
+
     return matchedItemsObject;
   }
 
